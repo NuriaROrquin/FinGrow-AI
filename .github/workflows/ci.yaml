@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - feature/T-13-Extender-la-integración-continua-al-frontend-y-al-servicio-de-IA
+  pull_request:
+    branches:
+      - main
+      - dev
+      - feature/T-13-Extender-la-integración-continua-al-frontend-y-al-servicio-de-IA
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: |
+            pyproject.toml
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Ejecutar ruff check
+        run: ruff check .
+
+      - name: Ejecutar tests
+        run: pytest
