@@ -5,13 +5,10 @@ on:
     branches:
       - main
       - dev
-      - feature/T-13-Extender-la-integración-continua-al-frontend-y-al-servicio-de-IA
   pull_request:
     branches:
       - main
       - dev
-      - feature/T-13-Extender-la-integración-continua-al-frontend-y-al-servicio-de-IA
-
 jobs:
   test:
     runs-on: ubuntu-latest
