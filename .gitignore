@@ -15,3 +15,6 @@ build/
 # Editores
 .idea/
 .vscode/
+
+# Claude Code: config local, no se versiona
+*.local.json
