@@ -5,10 +5,18 @@ Pydantic no puede validar solo, arma el prompt, llama al modelo, interpreta la
 respuesta. No sabe nada de HTTP -- eso es responsabilidad de la capa api/.
 """
 
+import json
 import logging
+from uuid import UUID
 
+from app.core.exceptions import InferenceFailedError
 from app.domain.enums import ExpenseCategory
 from app.infrastructure.llm.client import LlmClient
+from app.infrastructure.prompts.categorization import (
+    RESPONSE_SCHEMA,
+    build_system_prompt,
+    build_user_message,
+)
 from app.schemas.categorization import (
     CategorizedTransaction,
     CategorizeRequest,
@@ -25,17 +33,38 @@ class CategorizationService:
     async def categorize(self, request: CategorizeRequest) -> CategorizeResponse:
         logger.info("Categorizando %d movimientos", len(request.transactions))
 
-        # TODO: armar el prompt (app/infrastructure/prompts/), llamar a
-        # self._llm.complete() e interpretar la respuesta.
-        # Por ahora devolvemos una respuesta con la forma final del contrato
-        # para que el backend .NET pueda integrar en paralelo.
-        results = [
-            CategorizedTransaction(
-                id=transaction.id,
-                category=ExpenseCategory.OTROS,
-                confidence=0.0,
-            )
-            for transaction in request.transactions
-        ]
+        raw = await self._llm.complete(
+            build_user_message(request.transactions),
+            system=build_system_prompt(),
+            response_schema=RESPONSE_SCHEMA,
+        )
+        results = self._parse_results(raw, expected_ids={t.id for t in request.transactions})
 
         return CategorizeResponse(results=results, model=getattr(self._llm, "model", "unknown"))
+
+    def _parse_results(self, raw: str, expected_ids: set[UUID]) -> list[CategorizedTransaction]:
+        try:
+            payload = json.loads(raw)
+            entries = payload["results"]
+        except (json.JSONDecodeError, KeyError, TypeError) as exc:
+            raise InferenceFailedError("La respuesta del modelo no tiene el formato esperado.") from exc
+
+        try:
+            results = [
+                CategorizedTransaction(
+                    id=UUID(entry["id"]),
+                    category=ExpenseCategory(entry["category"]),
+                    confidence=entry["confidence"],
+                )
+                for entry in entries
+            ]
+        except (KeyError, ValueError, TypeError) as exc:
+            raise InferenceFailedError("El modelo devolvio un id, categoria o confidence invalido.") from exc
+
+        result_ids = {result.id for result in results}
+        if result_ids != expected_ids:
+            raise InferenceFailedError(
+                "El modelo no devolvio exactamente un resultado por cada movimiento recibido."
+            )
+
+        return results
