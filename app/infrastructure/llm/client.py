@@ -26,7 +26,9 @@ _PING_PROMPT = "Respondiendo esto confirmo que el servicio esta arriba. Contesta
 
 
 class LlmClient(Protocol):
-    async def complete(self, prompt: str, *, system: str | None = None, response_schema: dict[str, Any] | None = None) -> str:
+    async def complete(
+        self, prompt: str, *, system: str | None = None, response_schema: dict[str, Any] | None = None
+    ) -> str:
         """Manda un prompt al modelo y devuelve el texto crudo de la respuesta.
 
         `system` son instrucciones fijas, separadas del contenido variable de
@@ -103,7 +105,9 @@ class AnthropicLlmClient:
         self._client = AsyncAnthropic(api_key=api_key, timeout=timeout_seconds)
         self.model = model
 
-    async def complete(self, prompt: str, *, system: str | None = None, response_schema: dict[str, Any] | None = None) -> str:
+    async def complete(
+        self, prompt: str, *, system: str | None = None, response_schema: dict[str, Any] | None = None
+    ) -> str:
         create_kwargs: dict[str, Any] = {
             "model": self.model,
             "max_tokens": _MAX_TOKENS,
