@@ -39,6 +39,17 @@ RESPONSE_SCHEMA: dict[str, Any] = {
 }
 
 
+_CONFIDENCE_GUIDE = (
+    "Calibra el 'confidence' con esta escala: 0.8 o mas solo cuando la descripcion o el "
+    "comercio identifican el rubro sin ambiguedad (por ejemplo un supermercado, una "
+    "farmacia o una empresa de servicios conocida); entre 0.5 y 0.8 cuando hay una pista "
+    "razonable pero el movimiento podria pertenecer a otra categoria; menos de 0.5 cuando "
+    "la descripcion es generica, es una transferencia a una persona o no da pistas del "
+    "rubro. Si elegis 'otros' porque no pudiste inferir la categoria, el 'confidence' "
+    "tiene que ser menor a 0.5. No devuelvas el mismo valor para todos los movimientos."
+)
+
+
 def build_system_prompt() -> str:
     categorias = ", ".join(_CATEGORY_VALUES)
     return (
@@ -48,7 +59,8 @@ def build_system_prompt() -> str:
         "No inventes categorias nuevas, no las traduzcas ni cambies el formato. "
         "Devolve un resultado por cada movimiento recibido, usando el mismo "
         "'id' que te llego, con un 'confidence' entre 0.0 y 1.0 que refleje "
-        "que tan seguro estas de la categoria elegida."
+        "que tan seguro estas de la categoria elegida. "
+        f"{_CONFIDENCE_GUIDE}"
     )
 
 
