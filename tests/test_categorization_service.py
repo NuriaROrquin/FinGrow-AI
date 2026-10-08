@@ -81,3 +81,32 @@ async def test_falta_un_resultado_por_transaccion_lanza_inference_failed() -> No
 
     with pytest.raises(InferenceFailedError):
         await service.categorize(_request())
+
+
+@pytest.mark.parametrize("confidence", [-0.1, 1.5, "alta", None])
+async def test_confidence_fuera_de_rango_lanza_inference_failed(confidence: Any) -> None:
+    request = _request()
+    raw = json.dumps(
+        {
+            "results": [
+                {"id": str(request.transactions[0].id), "category": "alimentos", "confidence": confidence}
+            ]
+        }
+    )
+    service = CategorizationService(llm=_FakeLlmClient(raw))
+
+    with pytest.raises(InferenceFailedError):
+        await service.categorize(request)
+
+
+@pytest.mark.parametrize("confidence", [0.0, 1.0])
+async def test_confidence_en_los_extremos_es_valido(confidence: float) -> None:
+    request = _request()
+    raw = json.dumps(
+        {"results": [{"id": str(request.transactions[0].id), "category": "otros", "confidence": confidence}]}
+    )
+    service = CategorizationService(llm=_FakeLlmClient(raw))
+
+    response = await service.categorize(request)
+
+    assert response.results[0].confidence == confidence
