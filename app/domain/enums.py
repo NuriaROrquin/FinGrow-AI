@@ -26,3 +26,31 @@ class ExpenseCategory(StrEnum):
     INDUMENTARIA = "indumentaria"
     AHORRO_INVERSION = "ahorro_inversion"
     OTROS = "otros"
+
+
+class IncomeCategory(StrEnum):
+    SALARIO = "salario"
+    FREELANCE = "freelance"
+    INVERSIONES = "inversiones"
+    REGALO = "regalo"
+    OTROS = "otros"
+
+
+class TransactionType(StrEnum):
+    EXPENSE = "expense"
+    INCOME = "income"
+
+
+class PaymentMethod(StrEnum):
+    CASH = "cash"
+    CREDIT_CARD = "credit_card"
+    DEBIT_CARD = "debit_card"
+    BANK_TRANSFER = "bank_transfer"
+    DIGITAL_WALLET = "digital_wallet"
+
+
+class Currency(StrEnum):
+    ARS = "ARS"
+    USD = "USD"
+    EUR = "EUR"
+    BRL = "BRL"
