@@ -25,6 +25,9 @@ en el backend, se desincronizan — ver el aviso en `app/domain/enums.py`.
 tienen que coincidir uno a uno, en texto y en castellano (`ahorro_inversion`, no
 `AhorroInversion`), con el enum equivalente de `FinGrow.Domain/Enums` en FinGrow-BE. Un test del
 lado de BE rompe el build si las dos listas se separan: si cambiás uno, cambiá el otro.
+Lo mismo vale para `IncomeCategory` (cinco valores: `salario`, `freelance`, `inversiones`,
+`regalo`, `otros`), que se agregó con HU-13 al interpretar mensajes del bot. `PaymentMethod` y
+`Currency` también viajan como texto hacia el backend, que descarta lo que no conoce.
 
 **No mandar datos personales** (nombre, mail, CBU) en requests ni en prompts si no son
 imprescindibles para la inferencia — el README ya lo marca, pero es de las cosas fáciles de

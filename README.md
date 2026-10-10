@@ -66,6 +66,23 @@ Ver `categorization` como ejemplo completo: hoy devuelve una respuesta de
 relleno, pero con la forma final del contrato, para que quien consuma la API
 pueda integrar en paralelo.
 
+## Endpoints
+
+| Ruta | Que hace |
+|---|---|
+| `POST /api/v1/categorization/transactions` | Categoriza un lote de gastos (sync de Mercado Pago) |
+| `POST /api/v1/message-parsing/transactions` | Interpreta un mensaje de chat ("Gaste $500 en el super") como un movimiento: tipo, monto, moneda, categoria, descripcion y medio de pago (HU-13) |
+
+`message-parsing` devuelve un `status`: `parsed` (trae `transaction`), `missing_amount`,
+`not_a_transaction` o `multiple_transactions`. Los tres ultimos no traen movimiento: el backend
+repregunta. El monto nunca se estima; si el texto no lo dice, la respuesta es `missing_amount`.
+`payment_method` viene en `null` cuando el mensaje no lo menciona, y la fecha no se interpreta:
+el backend registra la del dia.
+
+Con `LLM_PROVIDER` distinto de `anthropic`, el stub responde con el primer elemento de
+`examples` del JSON Schema que recibe, si lo trae: asi cada endpoint nuevo define su propia
+respuesta de relleno junto a su schema.
+
 ## Ciclos de vida
 
 - Una funcion resuelta con `Depends()` se ejecuta **una vez por request**.
