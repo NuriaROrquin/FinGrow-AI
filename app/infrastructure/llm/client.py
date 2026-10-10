@@ -63,6 +63,11 @@ class StubLlmClient:
     ) -> str:
         if response_schema is None:
             return "stub"
+
+        examples = response_schema.get("examples")
+        if examples:
+            return json.dumps(examples[0])
+
         return self._fake_structured_response(prompt, response_schema)
 
     async def is_available(self) -> bool:
