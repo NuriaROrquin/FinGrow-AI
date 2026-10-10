@@ -18,6 +18,7 @@ from fastapi import Depends, Request
 from app.core.config import Settings, get_settings
 from app.infrastructure.llm.client import LlmClient
 from app.services.categorization_service import CategorizationService
+from app.services.message_parsing_service import MessageParsingService
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 
@@ -35,3 +36,10 @@ def get_categorization_service(llm: LlmClientDep) -> CategorizationService:
 
 
 CategorizationServiceDep = Annotated[CategorizationService, Depends(get_categorization_service)]
+
+
+def get_message_parsing_service(llm: LlmClientDep) -> MessageParsingService:
+    return MessageParsingService(llm=llm)
+
+
+MessageParsingServiceDep = Annotated[MessageParsingService, Depends(get_message_parsing_service)]
