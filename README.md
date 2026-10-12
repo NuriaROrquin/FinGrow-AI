@@ -89,7 +89,8 @@ respuesta de relleno junto a su schema.
 `stub` (el default) responde siempre el mismo texto, para integrar sin gastar. El audio viaja a
 OpenAI: es lo minimo imprescindible para transcribirlo, no se manda nada mas del empleado.
 
-- Formatos: ogg (las notas de voz de WhatsApp y Telegram), mp3, mp4, m4a, wav, webm y flac. El
+- Formatos: ogg (las notas de voz de WhatsApp y Telegram, tambien como `.opus`), mp3, mp4, m4a,
+  wav, webm y flac. El
   formato sale del `Content-Type` de la parte (`audio/ogg; codecs=opus` incluido) y, si no es de
   audio, de la extension del archivo.
 - Devuelve `text`, `language` (`TRANSCRIPTION_LANGUAGE`, `es` por defecto) y `model`.

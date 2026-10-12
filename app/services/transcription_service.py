@@ -26,6 +26,13 @@ _FORMATS_BY_CONTENT_TYPE = {
     "audio/x-flac": AudioFormat.FLAC,
 }
 
+_FORMATS_BY_EXTENSION = {audio_format.value: audio_format for audio_format in AudioFormat} | {
+    "opus": AudioFormat.OGG,
+    "oga": AudioFormat.OGG,
+    "mpeg": AudioFormat.MP3,
+    "mpga": AudioFormat.MP3,
+}
+
 
 class TranscriptionService:
     def __init__(self, transcriber: Transcriber, max_audio_bytes: int, language: str) -> None:
@@ -62,8 +69,8 @@ class TranscriptionService:
             return _FORMATS_BY_CONTENT_TYPE[media_type]
 
         extension = PurePath(filename or "").suffix.removeprefix(".").lower()
-        try:
-            return AudioFormat(extension)
-        except ValueError:
-            received = media_type or extension or "desconocido"
-            raise UnsupportedAudioError(f"El formato '{received}' no se puede transcribir.") from None
+        if extension in _FORMATS_BY_EXTENSION:
+            return _FORMATS_BY_EXTENSION[extension]
+
+        received = media_type or extension or "desconocido"
+        raise UnsupportedAudioError(f"El formato '{received}' no se puede transcribir.")

@@ -59,6 +59,16 @@ async def test_sin_content_type_de_audio_usa_la_extension_del_archivo() -> None:
     assert transcriber.calls[0][1] is AudioFormat.WEBM
 
 
+async def test_una_nota_de_voz_exportada_de_whatsapp_como_opus_se_manda_como_ogg() -> None:
+    transcriber = _FakeTranscriber()
+
+    await _service(transcriber).transcribe(
+        b"audio", content_type="application/octet-stream", filename="PTT-20261011-WA0001.opus"
+    )
+
+    assert transcriber.calls[0][1] is AudioFormat.OGG
+
+
 async def test_un_formato_que_el_proveedor_no_acepta_es_rechazado() -> None:
     transcriber = _FakeTranscriber()
 
