@@ -9,7 +9,7 @@ con un mensaje claro, en vez de romper en el primer request.
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -40,6 +40,20 @@ class Settings(BaseSettings):
     llm_model: str = "claude-sonnet-5"
     llm_api_key: str = ""
     llm_timeout_seconds: int = Field(default=30, ge=1, le=300)
+
+    transcription_provider: Literal["stub", "openai"] = "stub"
+    transcription_model: str = "gpt-4o-mini-transcribe"
+    transcription_api_key: str = ""
+    transcription_timeout_seconds: int = Field(default=60, ge=1, le=300)
+    transcription_language: str = Field(default="es", pattern=r"^[a-z]{2}$")
+    transcription_max_audio_bytes: int = Field(default=20 * 1024 * 1024, ge=1, le=25_000_000)
+
+    @model_validator(mode="after")
+    def _transcription_key_required(self) -> "Settings":
+        if self.transcription_provider == "openai" and not self.transcription_api_key:
+            raise ValueError("TRANSCRIPTION_API_KEY es obligatoria con TRANSCRIPTION_PROVIDER=openai.")
+
+        return self
 
     @property
     def auth_enabled(self) -> bool:

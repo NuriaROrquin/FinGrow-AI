@@ -17,8 +17,10 @@ from fastapi import Depends, Request
 
 from app.core.config import Settings, get_settings
 from app.infrastructure.llm.client import LlmClient
+from app.infrastructure.transcription.client import Transcriber
 from app.services.categorization_service import CategorizationService
 from app.services.message_parsing_service import MessageParsingService
+from app.services.transcription_service import TranscriptionService
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 
@@ -43,3 +45,21 @@ def get_message_parsing_service(llm: LlmClientDep) -> MessageParsingService:
 
 
 MessageParsingServiceDep = Annotated[MessageParsingService, Depends(get_message_parsing_service)]
+
+
+def get_transcriber(request: Request) -> Transcriber:
+    return request.app.state.transcriber
+
+
+TranscriberDep = Annotated[Transcriber, Depends(get_transcriber)]
+
+
+def get_transcription_service(transcriber: TranscriberDep, settings: SettingsDep) -> TranscriptionService:
+    return TranscriptionService(
+        transcriber=transcriber,
+        max_audio_bytes=settings.transcription_max_audio_bytes,
+        language=settings.transcription_language,
+    )
+
+
+TranscriptionServiceDep = Annotated[TranscriptionService, Depends(get_transcription_service)]
