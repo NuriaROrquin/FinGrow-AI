@@ -39,3 +39,18 @@ class InferenceFailedError(FinGrowAiError):
 
     code = "inference_failed"
     status_code = 502
+
+
+class UnsupportedAudioError(FinGrowAiError):
+    code = "unsupported_audio"
+    status_code = 415
+
+
+class AudioTooLargeError(FinGrowAiError):
+    code = "audio_too_large"
+    status_code = 413
+
+
+class AudioNotUnderstoodError(FinGrowAiError):
+    code = "audio_not_understood"
+    status_code = 422
