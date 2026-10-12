@@ -7,8 +7,9 @@ pueda, sin romperse.
 
 from fastapi import APIRouter
 
-from app.api.v1.routes import categorization, message_parsing
+from app.api.v1.routes import categorization, email_parsing, message_parsing
 
 api_router = APIRouter()
 api_router.include_router(categorization.router)
 api_router.include_router(message_parsing.router)
+api_router.include_router(email_parsing.router)

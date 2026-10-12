@@ -72,12 +72,20 @@ pueda integrar en paralelo.
 |---|---|
 | `POST /api/v1/categorization/transactions` | Categoriza un lote de gastos (sync de Mercado Pago) |
 | `POST /api/v1/message-parsing/transactions` | Interpreta un mensaje de chat ("Gaste $500 en el super") como un movimiento: tipo, monto, moneda, categoria, descripcion y medio de pago (HU-13) |
+| `POST /api/v1/email-parsing/bills` | Decide si un mail es una factura o un consumo y extrae empresa, total, moneda, vencimiento y categoria (HU-06, sync de Gmail) |
 
 `message-parsing` devuelve un `status`: `parsed` (trae `transaction`), `missing_amount`,
 `not_a_transaction` o `multiple_transactions`. Los tres ultimos no traen movimiento: el backend
 repregunta. El monto nunca se estima; si el texto no lo dice, la respuesta es `missing_amount`.
 `payment_method` viene en `null` cuando el mensaje no lo menciona, y la fecha no se interpreta:
 el backend registra la del dia.
+
+`email-parsing` solo toma como factura la de un servicio que se paga periodicamente (luz, gas,
+agua, internet, telefonia, prepagas, impuestos, expensas): viajes, compras y resumenes de tarjeta
+son `not_a_bill` aunque traigan un total. Devuelve `bill` (trae `bill`), `missing_amount` (es una factura pero el mail no
+dice el total, por ejemplo cuando solo ofrece descargarla) o `not_a_bill`. Acepta reenvios: la
+empresa sale del cuerpo, no del remitente. `due_date` viene en `null` si el mail no lo dice o
+no se pudo leer; el backend lo usa para no proponer dos veces la misma factura.
 
 Con `LLM_PROVIDER` distinto de `anthropic`, el stub responde con el primer elemento de
 `examples` del JSON Schema que recibe, si lo trae: asi cada endpoint nuevo define su propia

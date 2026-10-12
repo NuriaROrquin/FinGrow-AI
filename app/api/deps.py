@@ -18,6 +18,7 @@ from fastapi import Depends, Request
 from app.core.config import Settings, get_settings
 from app.infrastructure.llm.client import LlmClient
 from app.services.categorization_service import CategorizationService
+from app.services.email_parsing_service import EmailParsingService
 from app.services.message_parsing_service import MessageParsingService
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]
@@ -43,3 +44,10 @@ def get_message_parsing_service(llm: LlmClientDep) -> MessageParsingService:
 
 
 MessageParsingServiceDep = Annotated[MessageParsingService, Depends(get_message_parsing_service)]
+
+
+def get_email_parsing_service(llm: LlmClientDep) -> EmailParsingService:
+    return EmailParsingService(llm=llm)
+
+
+EmailParsingServiceDep = Annotated[EmailParsingService, Depends(get_email_parsing_service)]
