@@ -13,6 +13,8 @@ dependencies = [
     "pydantic>=2.9",
     "pydantic-settings>=2.5",
     "anthropic>=0.40",
+    "openai>=3.29",
+    "python-multipart>=0.0.20",
 ]
 
 [project.optional-dependencies]

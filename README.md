@@ -72,6 +72,8 @@ pueda integrar en paralelo.
 |---|---|
 | `POST /api/v1/categorization/transactions` | Categoriza un lote de gastos (sync de Mercado Pago) |
 | `POST /api/v1/message-parsing/transactions` | Interpreta un mensaje de chat ("Gaste $500 en el super") como un movimiento: tipo, monto, moneda, categoria, descripcion y medio de pago (HU-13) |
+| `POST /api/v1/transcription/audio` | Transcribe una nota de voz (multipart, campo `file`) a texto, para despues interpretarlo con `message-parsing` (T-21) |
+
 | `POST /api/v1/email-parsing/bills` | Decide si un mail es una factura o un consumo y extrae empresa, total, moneda, vencimiento y categoria (HU-06, sync de Gmail) |
 
 `message-parsing` devuelve un `status`: `parsed` (trae `transaction`), `missing_amount`,
@@ -90,6 +92,22 @@ no se pudo leer; el backend lo usa para no proponer dos veces la misma factura.
 Con `LLM_PROVIDER` distinto de `anthropic`, el stub responde con el primer elemento de
 `examples` del JSON Schema que recibe, si lo trae: asi cada endpoint nuevo define su propia
 respuesta de relleno junto a su schema.
+
+`transcription` no usa Claude: la API de Anthropic no acepta audio. Usa OpenAI
+(`gpt-4o-mini-transcribe`) con `TRANSCRIPTION_PROVIDER=openai` y `TRANSCRIPTION_API_KEY`; con
+`stub` (el default) responde siempre el mismo texto, para integrar sin gastar. El audio viaja a
+OpenAI: es lo minimo imprescindible para transcribirlo, no se manda nada mas del empleado.
+
+- Formatos: ogg (las notas de voz de WhatsApp y Telegram, tambien como `.opus`), mp3, mp4, m4a,
+  wav, webm y flac. El
+  formato sale del `Content-Type` de la parte (`audio/ogg; codecs=opus` incluido) y, si no es de
+  audio, de la extension del archivo.
+- Devuelve `text`, `language` (`TRANSCRIPTION_LANGUAGE`, `es` por defecto) y `model`.
+- Errores propios: `audio_not_understood` (422: audio vacio, danado o sin ninguna frase
+  reconocible), `unsupported_audio` (415) y `audio_too_large` (413, por encima de
+  `TRANSCRIPTION_MAX_AUDIO_BYTES`, 20 MB por defecto). Si OpenAI no responde, `model_unavailable`
+  (503). El backend traduce los tres primeros en el aviso de HU-14 de repetir el audio o cargarlo
+  por texto.
 
 ## Ciclos de vida
 

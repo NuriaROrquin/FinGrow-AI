@@ -18,6 +18,7 @@ from app.api.v1.routes import health
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.infrastructure.llm.client import build_llm_client
+from app.infrastructure.transcription.client import build_transcriber
 
 
 @asynccontextmanager
@@ -32,6 +33,7 @@ async def lifespan(app: FastAPI):
     configure_logging(settings.log_level)
 
     app.state.llm_client = build_llm_client(settings)
+    app.state.transcriber = build_transcriber(settings)
     yield
     # Aca iria el cierre ordenado de conexiones, si las hubiera.
 
