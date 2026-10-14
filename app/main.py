@@ -18,6 +18,7 @@ from app.api.v1.routes import health
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.infrastructure.llm.client import build_llm_client
+from app.infrastructure.ocr.client import build_receipt_reader
 from app.infrastructure.transcription.client import build_transcriber
 
 
@@ -34,6 +35,7 @@ async def lifespan(app: FastAPI):
 
     app.state.llm_client = build_llm_client(settings)
     app.state.transcriber = build_transcriber(settings)
+    app.state.receipt_reader = build_receipt_reader(settings)
     yield
     # Aca iria el cierre ordenado de conexiones, si las hubiera.
 

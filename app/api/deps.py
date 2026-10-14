@@ -17,10 +17,12 @@ from fastapi import Depends, Request
 
 from app.core.config import Settings, get_settings
 from app.infrastructure.llm.client import LlmClient
+from app.infrastructure.ocr.client import ReceiptReader
 from app.infrastructure.transcription.client import Transcriber
 from app.services.categorization_service import CategorizationService
 from app.services.email_parsing_service import EmailParsingService
 from app.services.message_parsing_service import MessageParsingService
+from app.services.receipt_scanning_service import ReceiptScanningService
 from app.services.transcription_service import TranscriptionService
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]
@@ -71,3 +73,19 @@ def get_email_parsing_service(llm: LlmClientDep) -> EmailParsingService:
 
 
 EmailParsingServiceDep = Annotated[EmailParsingService, Depends(get_email_parsing_service)]
+
+
+def get_receipt_reader(request: Request) -> ReceiptReader:
+    return request.app.state.receipt_reader
+
+
+ReceiptReaderDep = Annotated[ReceiptReader, Depends(get_receipt_reader)]
+
+
+def get_receipt_scanning_service(
+    reader: ReceiptReaderDep, llm: LlmClientDep, settings: SettingsDep
+) -> ReceiptScanningService:
+    return ReceiptScanningService(reader=reader, llm=llm, max_document_bytes=settings.ocr_max_document_bytes)
+
+
+ReceiptScanningServiceDep = Annotated[ReceiptScanningService, Depends(get_receipt_scanning_service)]
