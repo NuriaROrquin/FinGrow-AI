@@ -71,7 +71,7 @@ pueda integrar en paralelo.
 | Ruta | Que hace |
 |---|---|
 | `POST /api/v1/categorization/transactions` | Categoriza un lote de gastos (sync de Mercado Pago) |
-| `POST /api/v1/message-parsing/transactions` | Interpreta un mensaje de chat ("Gaste $500 en el super") como un movimiento: tipo, monto, moneda, categoria, descripcion y medio de pago (HU-13) |
+| `POST /api/v1/message-parsing/transactions` | Interpreta un mensaje de chat ("Gaste $500 en el super") como un movimiento: tipo, monto, moneda, categoria, descripcion, medio de pago y fecha (HU-13) |
 | `POST /api/v1/transcription/audio` | Transcribe una nota de voz (multipart, campo `file`) a texto, para despues interpretarlo con `message-parsing` (T-21) |
 
 | `POST /api/v1/email-parsing/bills` | Decide si un mail es una factura o un consumo y extrae empresa, total, moneda, vencimiento y categoria (HU-06, sync de Gmail) |
@@ -79,8 +79,12 @@ pueda integrar en paralelo.
 `message-parsing` devuelve un `status`: `parsed` (trae `transaction`), `missing_amount`,
 `not_a_transaction` o `multiple_transactions`. Los tres ultimos no traen movimiento: el backend
 repregunta. El monto nunca se estima; si el texto no lo dice, la respuesta es `missing_amount`.
-`payment_method` viene en `null` cuando el mensaje no lo menciona, y la fecha no se interpreta:
-el backend registra la del dia.
+`payment_method` y `occurred_on` vienen en `null` cuando el mensaje no los menciona. Para
+resolver "ayer" o "el lunes" el backend manda `today` (la fecha de hoy en Argentina); si no la
+manda, se usa la del servidor en hora argentina. Con un periodo vago ("la semana pasada") la
+fecha es una estimacion y `occurred_on_is_estimate` viene en `true`, para que el backend la
+marque como estimada en la propuesta. Que hacer con una fecha que falta o que cae en
+el futuro lo decide el backend.
 
 `email-parsing` solo toma como factura la de un servicio que se paga periodicamente (luz, gas,
 agua, internet, telefonia, prepagas, impuestos, expensas): viajes, compras y resumenes de tarjeta
