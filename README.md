@@ -73,6 +73,7 @@ pueda integrar en paralelo.
 | `POST /api/v1/categorization/transactions` | Categoriza un lote de gastos (sync de Mercado Pago) |
 | `POST /api/v1/message-parsing/transactions` | Interpreta un mensaje de chat ("Gaste $500 en el super") como un movimiento: tipo, monto, moneda, categoria, descripcion, medio de pago y fecha (HU-13) |
 | `POST /api/v1/transcription/audio` | Transcribe una nota de voz (multipart, campo `file`) a texto, para despues interpretarlo con `message-parsing` (T-21) |
+| `POST /api/v1/receipt-scanning/receipts` | Lee un ticket o factura (multipart, campo `file`) y devuelve comercio, total, moneda, fecha, categoria, medio de pago y confianza (HU-12) |
 
 | `POST /api/v1/email-parsing/bills` | Decide si un mail es una factura o un consumo y extrae empresa, total, moneda, vencimiento y categoria (HU-06, sync de Gmail) |
 
@@ -112,6 +113,34 @@ OpenAI: es lo minimo imprescindible para transcribirlo, no se manda nada mas del
   `TRANSCRIPTION_MAX_AUDIO_BYTES`, 20 MB por defecto). Si OpenAI no responde, `model_unavailable`
   (503). El backend traduce los tres primeros en el aviso de HU-14 de repetir el audio o cargarlo
   por texto.
+
+`receipt-scanning` lee el comprobante con Amazon Textract (`AnalyzeExpense`) y usa Claude solo
+para limpiar el nombre del comercio y elegir la categoria. Con `OCR_PROVIDER=textract` hacen falta
+`OCR_AWS_REGION`, `OCR_AWS_ACCESS_KEY_ID` y `OCR_AWS_SECRET_ACCESS_KEY` (un usuario IAM con permiso
+solo para `textract:AnalyzeExpense`); con `stub` (el default) devuelve siempre el mismo ticket de
+supermercado, para integrar sin gastar.
+
+- Formatos: JPG, PNG y PDF de una pagina, hasta `OCR_MAX_DOCUMENT_BYTES` (5 MB, el maximo que
+  Textract acepta en bytes). El formato sale del `Content-Type` y, si no es uno de esos, de la
+  extension; los primeros bytes tienen que coincidir con el tipo declarado.
+- Campo opcional `default_currency` (`ARS` por defecto): la moneda cuando el ticket no dice otra.
+- Devuelve un `status`: `parsed` (trae `receipt`), `missing_amount` (se leyo algo pero no un total)
+  o `unreadable` (el OCR no encontro nada). El monto nunca se estima.
+- Monto y fecha los interpreta el codigo, no el modelo: los importes aceptan `1.250,50` y
+  `1,250.50`, y las fechas van con el dia primero (`14/10/26`, `14 oct 2026`). Una fecha que no se
+  puede leer viene en `null` y el backend decide cual usar.
+- El medio de pago sale de buscar en el texto del ticket palabras como "debito", "cuotas", "QR" o
+  "efectivo"; si no aparece ninguna viene en `null`.
+- `confidence` es la menor entre la confianza del OCR para monto, fecha y comercio. Un campo que
+  no se pudo leer cuenta como 0.5, asi que un ticket sin fecha o sin comercio nunca tiene confianza
+  alta.
+- Al modelo solo le llegan el nombre del comercio y los productos: el resto del ticket (CUIT,
+  ultimos digitos de la tarjeta, nombre del cliente) no sale del servicio.
+- Errores propios: `unsupported_document` (415: otro formato, o un PDF de mas de una pagina),
+  `document_too_large` (413) y `document_not_readable` (422: archivo vacio o danado). Si Textract
+  no responde o rechaza las credenciales, `model_unavailable` (503).
+- Costo de referencia: USD 0,01 por pagina; las cuentas nuevas de AWS tienen 100 paginas por mes
+  gratis durante tres meses.
 
 ## Ciclos de vida
 
