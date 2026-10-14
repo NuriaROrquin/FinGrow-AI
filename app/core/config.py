@@ -48,10 +48,29 @@ class Settings(BaseSettings):
     transcription_language: str = Field(default="es", pattern=r"^[a-z]{2}$")
     transcription_max_audio_bytes: int = Field(default=20 * 1024 * 1024, ge=1, le=25_000_000)
 
+    ocr_provider: Literal["stub", "textract"] = "stub"
+    ocr_aws_region: str = "us-east-1"
+    ocr_aws_access_key_id: str = ""
+    ocr_aws_secret_access_key: str = ""
+    ocr_timeout_seconds: int = Field(default=30, ge=1, le=300)
+    ocr_max_document_bytes: int = Field(default=5 * 1024 * 1024, ge=1, le=5 * 1024 * 1024)
+
     @model_validator(mode="after")
     def _transcription_key_required(self) -> "Settings":
         if self.transcription_provider == "openai" and not self.transcription_api_key:
             raise ValueError("TRANSCRIPTION_API_KEY es obligatoria con TRANSCRIPTION_PROVIDER=openai.")
+
+        return self
+
+    @model_validator(mode="after")
+    def _ocr_credentials_required(self) -> "Settings":
+        if self.ocr_provider == "textract" and not (
+            self.ocr_aws_access_key_id and self.ocr_aws_secret_access_key
+        ):
+            raise ValueError(
+                "OCR_AWS_ACCESS_KEY_ID y OCR_AWS_SECRET_ACCESS_KEY son obligatorias "
+                "con OCR_PROVIDER=textract."
+            )
 
         return self
 

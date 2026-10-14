@@ -64,3 +64,9 @@ class AudioFormat(StrEnum):
     WAV = "wav"
     WEBM = "webm"
     FLAC = "flac"
+
+
+class DocumentFormat(StrEnum):
+    JPEG = "jpeg"
+    PNG = "png"
+    PDF = "pdf"

@@ -54,3 +54,18 @@ class AudioTooLargeError(FinGrowAiError):
 class AudioNotUnderstoodError(FinGrowAiError):
     code = "audio_not_understood"
     status_code = 422
+
+
+class UnsupportedDocumentError(FinGrowAiError):
+    code = "unsupported_document"
+    status_code = 415
+
+
+class DocumentTooLargeError(FinGrowAiError):
+    code = "document_too_large"
+    status_code = 413
+
+
+class DocumentNotReadableError(FinGrowAiError):
+    code = "document_not_readable"
+    status_code = 422
