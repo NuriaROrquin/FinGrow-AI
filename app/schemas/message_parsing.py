@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 from enum import StrEnum
 
@@ -22,6 +23,11 @@ class ParseMessageRequest(BaseModel):
         default=Currency.ARS,
         description="Moneda a usar cuando el mensaje no la menciona.",
     )
+    today: date | None = Field(
+        default=None,
+        description="Fecha de hoy del empleado, contra la que se resuelven 'ayer' o 'el lunes'. "
+        "Si no viene, se usa la de Argentina.",
+    )
 
 
 class ParsedTransaction(BaseModel):
@@ -36,6 +42,14 @@ class ParsedTransaction(BaseModel):
         description="Null si el mensaje no lo dice: el backend se lo pregunta al empleado.",
     )
     confidence: float = Field(ge=0.0, le=1.0, description="Que tan segura es la categoria elegida.")
+    occurred_on: date | None = Field(
+        default=None,
+        description="Null si el mensaje no dice la fecha: el backend usa la de hoy.",
+    )
+    occurred_on_is_estimate: bool = Field(
+        default=False,
+        description="True si el mensaje da un periodo vago ('la semana pasada') y la fecha es estimada.",
+    )
 
     @model_validator(mode="after")
     def _category_matches_type(self) -> "ParsedTransaction":

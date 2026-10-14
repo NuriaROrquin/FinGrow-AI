@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import date, datetime, timedelta, timezone
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import Any
 
@@ -23,6 +24,7 @@ from app.schemas.message_parsing import (
 logger = logging.getLogger(__name__)
 
 _CENTS = Decimal("0.01")
+_ARGENTINA = timezone(timedelta(hours=-3))
 
 
 class MessageParsingService:
@@ -34,7 +36,7 @@ class MessageParsingService:
 
         raw = await self._llm.complete(
             build_user_message(request),
-            system=build_system_prompt(request.default_currency),
+            system=build_system_prompt(request.default_currency, request.today or _today_in_argentina()),
             response_schema=RESPONSE_SCHEMA,
         )
         model = getattr(self._llm, "model", "unknown")
@@ -48,6 +50,8 @@ class MessageParsingService:
         if amount is None:
             return ParseMessageResponse(status=MessageParsingStatus.MISSING_AMOUNT, model=model)
 
+        occurred_on = self._occurred_on(payload.get("occurred_on"))
+
         try:
             transaction = ParsedTransaction(
                 type=payload.get("type"),
@@ -58,6 +62,9 @@ class MessageParsingService:
                 description=self._description(payload.get("description"), request.text),
                 payment_method=payload.get("payment_method"),
                 confidence=payload.get("confidence"),
+                occurred_on=occurred_on,
+                occurred_on_is_estimate=occurred_on is not None
+                and payload.get("occurred_on_is_estimate") is True,
             )
         except ValidationError as exc:
             raise InferenceFailedError("El modelo devolvio un movimiento incompleto o incoherente.") from exc
@@ -96,7 +103,21 @@ class MessageParsingService:
         return amount if amount > 0 else None
 
     @staticmethod
+    def _occurred_on(value: Any) -> date | None:
+        if not isinstance(value, str):
+            return None
+
+        try:
+            return date.fromisoformat(value.strip())
+        except ValueError:
+            return None
+
+    @staticmethod
     def _description(value: Any, text: str) -> str:
         description = value.strip() if isinstance(value, str) else ""
 
         return (description or text.strip())[:MAX_DESCRIPTION_LENGTH]
+
+
+def _today_in_argentina() -> date:
+    return datetime.now(_ARGENTINA).date()
