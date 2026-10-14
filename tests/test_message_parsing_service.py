@@ -1,4 +1,5 @@
 import json
+from datetime import date
 from decimal import Decimal
 from typing import Any
 
@@ -34,9 +35,11 @@ def _service(payload: dict[str, Any]) -> MessageParsingService:
 
 
 def _request(
-    text: str = "Gaste $500 en supermercado", currency: Currency = Currency.ARS
+    text: str = "Gaste $500 en supermercado",
+    currency: Currency = Currency.ARS,
+    today: date | None = date(2026, 10, 12),
 ) -> ParseMessageRequest:
-    return ParseMessageRequest(text=text, default_currency=currency)
+    return ParseMessageRequest(text=text, default_currency=currency, today=today)
 
 
 _EXPENSE = {
@@ -64,6 +67,7 @@ async def test_interpreta_un_gasto() -> None:
     assert transaction.income_category is None
     assert transaction.payment_method is None
     assert transaction.description == "Supermercado"
+    assert transaction.occurred_on is None
 
 
 async def test_interpreta_un_ingreso_con_su_categoria_y_medio_de_pago() -> None:
@@ -173,3 +177,70 @@ async def test_una_respuesta_ilegible_lanza_inference_failed(raw: str) -> None:
 
     with pytest.raises(InferenceFailedError):
         await service.parse(_request())
+
+
+async def test_devuelve_la_fecha_que_dice_el_mensaje() -> None:
+    response = await _service({**_EXPENSE, "occurred_on": "2026-10-11"}).parse(
+        _request("Ayer gaste $500 en el super")
+    )
+
+    assert response.transaction is not None
+    assert response.transaction.occurred_on == date(2026, 10, 11)
+    assert response.transaction.occurred_on_is_estimate is False
+
+
+@pytest.mark.parametrize("occurred_on", [None, "", "ayer", "2026-13-40", 20261011])
+async def test_una_fecha_ilegible_se_omite_sin_perder_el_movimiento(occurred_on: Any) -> None:
+    response = await _service({**_EXPENSE, "occurred_on": occurred_on}).parse(_request())
+
+    assert response.status is MessageParsingStatus.PARSED
+    assert response.transaction is not None
+    assert response.transaction.occurred_on is None
+
+
+async def test_el_prompt_usa_la_fecha_de_hoy_del_request() -> None:
+    llm = _FakeLlmClient(json.dumps(_EXPENSE))
+
+    await MessageParsingService(llm=llm).parse(_request(today=date(2026, 10, 12)))
+
+    assert llm.system is not None
+    assert "hoy es lunes 2026-10-12" in llm.system
+
+
+async def test_sin_fecha_de_hoy_en_el_request_usa_la_de_argentina() -> None:
+    llm = _FakeLlmClient(json.dumps(_EXPENSE))
+
+    await MessageParsingService(llm=llm).parse(_request(today=None))
+
+    assert llm.system is not None
+    assert "hoy es " in llm.system
+
+
+async def test_una_fecha_estimada_de_un_periodo_vago_se_marca_como_estimada() -> None:
+    payload = {**_EXPENSE, "occurred_on": "2026-10-05", "occurred_on_is_estimate": True}
+
+    response = await _service(payload).parse(_request("La semana pasada compre jabon para ropa 100"))
+
+    assert response.transaction is not None
+    assert response.transaction.occurred_on == date(2026, 10, 5)
+    assert response.transaction.occurred_on_is_estimate is True
+
+
+@pytest.mark.parametrize("flag", ["true", 1, None])
+async def test_solo_un_true_marca_la_fecha_como_estimada(flag: Any) -> None:
+    payload = {**_EXPENSE, "occurred_on": "2026-10-05", "occurred_on_is_estimate": flag}
+
+    response = await _service(payload).parse(_request())
+
+    assert response.transaction is not None
+    assert response.transaction.occurred_on_is_estimate is False
+
+
+async def test_sin_fecha_no_hay_estimacion() -> None:
+    payload = {**_EXPENSE, "occurred_on_is_estimate": True}
+
+    response = await _service(payload).parse(_request())
+
+    assert response.transaction is not None
+    assert response.transaction.occurred_on is None
+    assert response.transaction.occurred_on_is_estimate is False

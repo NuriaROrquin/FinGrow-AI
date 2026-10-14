@@ -29,3 +29,16 @@ def test_una_moneda_desconocida_es_rechazada(client: TestClient) -> None:
     response = client.post(URL, json={"text": "Gaste 500", "default_currency": "JPY"})
 
     assert response.status_code == 422
+
+
+def test_acepta_la_fecha_de_hoy_y_devuelve_la_fecha_del_movimiento(client: TestClient) -> None:
+    response = client.post(URL, json={"text": "Ayer gaste $500 en el super", "today": "2026-10-12"})
+
+    assert response.status_code == 200
+    assert "occurred_on" in response.json()["transaction"]
+
+
+def test_una_fecha_de_hoy_invalida_es_rechazada(client: TestClient) -> None:
+    response = client.post(URL, json={"text": "Gaste 500", "today": "ayer"})
+
+    assert response.status_code == 422
