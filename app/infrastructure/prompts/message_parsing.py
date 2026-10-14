@@ -1,4 +1,5 @@
 import json
+from datetime import date
 from typing import Any
 
 from app.domain.enums import Currency, ExpenseCategory, IncomeCategory, PaymentMethod, TransactionType
@@ -27,6 +28,15 @@ RESPONSE_SCHEMA: dict[str, Any] = {
         "description": {"type": "string", "maxLength": MAX_DESCRIPTION_LENGTH},
         "payment_method": {"type": "string", "enum": _PAYMENT_VALUES},
         "confidence": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+        "occurred_on": {
+            "type": "string",
+            "format": "date",
+            "description": "Fecha del movimiento (AAAA-MM-DD) si el mensaje la dice. Omitila si no la dice.",
+        },
+        "occurred_on_is_estimate": {
+            "type": "boolean",
+            "description": "true si 'occurred_on' es una estimacion de un periodo vago.",
+        },
     },
     "required": ["status"],
     "examples": [
@@ -86,12 +96,31 @@ con mayuscula inicial, sin el monto ni la moneda ("Supermercado", "Almuerzo con 
 Confianza ('confidence'): que tan seguro estas de la categoria. 0.8 o mas cuando el texto \
 identifica el rubro sin ambiguedad; entre 0.5 y 0.8 cuando hay una pista razonable pero \
 podria ser otra; menos de 0.5 cuando es generico. Si elegiste 'otros' porque no pudiste \
-inferir la categoria, tiene que ser menor a 0.5."""
+inferir la categoria, tiene que ser menor a 0.5.
+
+Fecha ('occurred_on'): hoy es {weekday} {today}. Completala, en formato AAAA-MM-DD, solo si el \
+texto dice cuando fue el movimiento, resolviendo las referencias contra hoy: "ayer", "anteayer", \
+"el lunes", "el 5", "el 3 de octubre", "5/10". Las fechas van dia/mes, como en Argentina: \
+"5/10" es el 5 de octubre. Un dia de la semana o una fecha sin año es la mas reciente que no \
+sea posterior a hoy. Una cantidad exacta se calcula: "hace 3 dias" es hoy menos 3 dias y "hace \
+2 semanas" es hoy menos 14 dias. Si el texto no dice la fecha o dice "hoy", omitila.
+
+Si el texto ubica el movimiento en un periodo vago, estima una fecha y marca \
+'occurred_on_is_estimate' en true: "la semana pasada" es hoy menos 7 dias; "el mes pasado" es \
+el mismo dia del mes anterior (o su ultimo dia si ese mes es mas corto); "hace unos dias" o \
+"hace poco" es hoy menos 3 dias; "el fin de semana" es el sabado mas reciente que no sea \
+posterior a hoy; "a principio de mes" es el dia 1 del mes en curso. En cualquier otro periodo \
+vago, elegi una fecha razonable dentro de ese periodo que no sea posterior a hoy. Con una fecha \
+exacta, omiti 'occurred_on_is_estimate'."""
+
+_WEEKDAYS = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"]
 
 
-def build_system_prompt(default_currency: Currency) -> str:
+def build_system_prompt(default_currency: Currency, today: date) -> str:
     return _INSTRUCTIONS.format(
         default_currency=default_currency.value,
+        today=today.isoformat(),
+        weekday=_WEEKDAYS[today.weekday()],
         expense_categories=", ".join(_EXPENSE_VALUES),
         income_categories=", ".join(_INCOME_VALUES),
     )
