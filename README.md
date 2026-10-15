@@ -76,6 +76,7 @@ pueda integrar en paralelo.
 | `POST /api/v1/receipt-scanning/receipts` | Lee un ticket o factura (multipart, campo `file`) y devuelve comercio, total, moneda, fecha, categoria, medio de pago y confianza (HU-12) |
 
 | `POST /api/v1/email-parsing/bills` | Decide si un mail es una factura o un consumo y extrae empresa, total, moneda, vencimiento y categoria (HU-06, sync de Gmail) |
+| `POST /api/v1/financial-insights/recommendations` | Genera tres recomendaciones accionables sobre el resumen financiero de un empleado en una moneda (HU-44) |
 
 `message-parsing` devuelve un `status`: `parsed` (trae `transaction`), `missing_amount`,
 `not_a_transaction` o `multiple_transactions`. Los tres ultimos no traen movimiento: el backend
@@ -97,6 +98,21 @@ no se pudo leer; el backend lo usa para no proponer dos veces la misma factura.
 Con `LLM_PROVIDER` distinto de `anthropic`, el stub responde con el primer elemento de
 `examples` del JSON Schema que recibe, si lo trae: asi cada endpoint nuevo define su propia
 respuesta de relleno junto a su schema.
+
+`financial-insights` recibe solo agregados: totales por mes (ingresos, gastos, ahorro y gasto por
+categoria), los topes del ultimo mes del periodo contra lo gastado y las metas (nombre, objetivo,
+aportado, cuota mensual y fecha limite). Nunca recibe movimientos sueltos, comercios ni datos del
+empleado. Los meses con `is_reference` en `true` son anteriores al periodo elegido y el modelo solo
+los usa para comparar. `ahorro_inversion` cuenta como ahorro, igual que en el backend.
+
+- Devuelve hasta tres `recommendations`, cada una con `kind` (`positive`, `warning` o `tip`),
+  `title`, `body` y `action` (`budgets`, `goals`, `transactions`, `education` o `none`). `action`
+  es una lista cerrada que el front traduce a un link: el modelo nunca arma URLs.
+- `title` y `body` vienen en el idioma de `language` (`es`, `en` o `pt`).
+- El prompt le prohibe recomendar productos o instrumentos financieros concretos y dar consejos
+  impositivos o legales. La aclaracion de que no es asesoramiento financiero certificado la pone
+  el front, no el modelo.
+- Una recomendacion incompleta se descarta; si no queda ninguna, `inference_failed` (502).
 
 `transcription` no usa Claude: la API de Anthropic no acepta audio. Usa OpenAI
 (`gpt-4o-mini-transcribe`) con `TRANSCRIPTION_PROVIDER=openai` y `TRANSCRIPTION_API_KEY`; con
