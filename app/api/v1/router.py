@@ -10,6 +10,7 @@ from fastapi import APIRouter
 from app.api.v1.routes import (
     categorization,
     email_parsing,
+    financial_insights,
     message_parsing,
     receipt_scanning,
     transcription,
@@ -21,3 +22,4 @@ api_router.include_router(message_parsing.router)
 api_router.include_router(email_parsing.router)
 api_router.include_router(transcription.router)
 api_router.include_router(receipt_scanning.router)
+api_router.include_router(financial_insights.router)

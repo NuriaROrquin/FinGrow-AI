@@ -21,6 +21,7 @@ from app.infrastructure.ocr.client import ReceiptReader
 from app.infrastructure.transcription.client import Transcriber
 from app.services.categorization_service import CategorizationService
 from app.services.email_parsing_service import EmailParsingService
+from app.services.financial_insights_service import FinancialInsightsService
 from app.services.message_parsing_service import MessageParsingService
 from app.services.receipt_scanning_service import ReceiptScanningService
 from app.services.transcription_service import TranscriptionService
@@ -89,3 +90,10 @@ def get_receipt_scanning_service(
 
 
 ReceiptScanningServiceDep = Annotated[ReceiptScanningService, Depends(get_receipt_scanning_service)]
+
+
+def get_financial_insights_service(llm: LlmClientDep) -> FinancialInsightsService:
+    return FinancialInsightsService(llm=llm)
+
+
+FinancialInsightsServiceDep = Annotated[FinancialInsightsService, Depends(get_financial_insights_service)]
