@@ -56,6 +56,12 @@ class Currency(StrEnum):
     BRL = "BRL"
 
 
+class Language(StrEnum):
+    ES = "es"
+    EN = "en"
+    PT = "pt"
+
+
 class AudioFormat(StrEnum):
     OGG = "ogg"
     MP3 = "mp3"
