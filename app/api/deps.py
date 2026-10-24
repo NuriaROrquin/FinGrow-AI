@@ -19,6 +19,7 @@ from app.core.config import Settings, get_settings
 from app.infrastructure.llm.client import LlmClient
 from app.infrastructure.ocr.client import ReceiptReader
 from app.infrastructure.transcription.client import Transcriber
+from app.services.budget_insights_service import BudgetInsightsService
 from app.services.categorization_service import CategorizationService
 from app.services.email_parsing_service import EmailParsingService
 from app.services.financial_insights_service import FinancialInsightsService
@@ -97,3 +98,10 @@ def get_financial_insights_service(llm: LlmClientDep) -> FinancialInsightsServic
 
 
 FinancialInsightsServiceDep = Annotated[FinancialInsightsService, Depends(get_financial_insights_service)]
+
+
+def get_budget_insights_service(llm: LlmClientDep) -> BudgetInsightsService:
+    return BudgetInsightsService(llm=llm)
+
+
+BudgetInsightsServiceDep = Annotated[BudgetInsightsService, Depends(get_budget_insights_service)]
