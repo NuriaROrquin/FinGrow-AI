@@ -77,6 +77,7 @@ pueda integrar en paralelo.
 
 | `POST /api/v1/email-parsing/bills` | Decide si un mail es una factura o un consumo y extrae empresa, total, moneda, vencimiento y categoria (HU-06, sync de Gmail) |
 | `POST /api/v1/financial-insights/recommendations` | Genera tres recomendaciones accionables sobre el resumen financiero de un empleado en una moneda (HU-44) |
+| `POST /api/v1/budget-insights/recommendations` | Genera tres recomendaciones sobre cómo le fue a un empleado con sus presupuestos mensuales en una moneda (HU-25) |
 
 `message-parsing` devuelve un `status`: `parsed` (trae `transaction`), `missing_amount`,
 `not_a_transaction` o `multiple_transactions`. Los tres ultimos no traen movimiento: el backend
@@ -113,6 +114,14 @@ los usa para comparar. `ahorro_inversion` cuenta como ahorro, igual que en el ba
   impositivos o legales. La aclaracion de que no es asesoramiento financiero certificado la pone
   el front, no el modelo.
 - Una recomendacion incompleta se descarta; si no queda ninguna, `inference_failed` (502).
+
+`budget-insights` (HU-25) recibe, por cada mes con presupuesto, los topes por categoria contra lo
+gastado y lo gastado en categorias sin tope (`unbudgeted_expenses`). Hasta 12 meses, uno por mes,
+y como mucho uno con `is_current` en `true`: el mes en curso, cuyo gasto todavia es parcial y el
+modelo solo usa para avisar si va camino a pasarse. Tampoco recibe movimientos sueltos ni datos
+del empleado. Responde con la misma forma que `financial-insights`: el schema de la respuesta, los
+nombres de las categorias y la lectura tolerante de lo que devuelve el modelo son compartidos
+(`app/infrastructure/prompts/recommendations.py` y `app/services/recommendation_parsing.py`).
 
 `transcription` no usa Claude: la API de Anthropic no acepta audio. Usa OpenAI
 (`gpt-4o-mini-transcribe`) con `TRANSCRIPTION_PROVIDER=openai` y `TRANSCRIPTION_API_KEY`; con
