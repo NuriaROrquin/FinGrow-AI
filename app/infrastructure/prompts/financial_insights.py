@@ -1,7 +1,11 @@
 import json
-from typing import Any
 
-from app.domain.enums import ExpenseCategory, Language
+from app.infrastructure.prompts.recommendations import (
+    LANGUAGES,
+    RECOMMENDATION_SLOTS,
+    category_list,
+    response_schema,
+)
 from app.schemas.financial_insights import (
     MAX_BODY_LENGTH,
     MAX_TITLE_LENGTH,
@@ -11,68 +15,30 @@ from app.schemas.financial_insights import (
     RecommendationsRequest,
 )
 
-_KIND_VALUES = [kind.value for kind in RecommendationKind]
-_ACTION_VALUES = [action.value for action in RecommendationAction]
+__all__ = ["RECOMMENDATION_SLOTS", "RESPONSE_SCHEMA", "build_system_prompt", "build_user_message"]
 
-_CATEGORY_NAMES = {
-    ExpenseCategory.ALIMENTOS: "alimentos",
-    ExpenseCategory.TRANSPORTE: "transporte",
-    ExpenseCategory.VIVIENDA: "vivienda",
-    ExpenseCategory.SERVICIOS: "servicios",
-    ExpenseCategory.SALUD: "salud",
-    ExpenseCategory.EDUCACION: "educación",
-    ExpenseCategory.ENTRETENIMIENTO: "entretenimiento",
-    ExpenseCategory.INDUMENTARIA: "indumentaria",
-    ExpenseCategory.AHORRO_INVERSION: "ahorro e inversión",
-    ExpenseCategory.OTROS: "otros gastos",
-}
-
-RECOMMENDATION_SLOTS = ("first", "second", "third")
-
-_RECOMMENDATION_SCHEMA: dict[str, Any] = {
-    "type": "object",
-    "properties": {
-        "kind": {"type": "string", "enum": _KIND_VALUES},
-        "title": {"type": "string", "maxLength": MAX_TITLE_LENGTH},
-        "body": {"type": "string", "maxLength": MAX_BODY_LENGTH},
-        "action": {"type": "string", "enum": _ACTION_VALUES},
-    },
-    "required": ["kind", "title", "body", "action"],
-}
-
-RESPONSE_SCHEMA: dict[str, Any] = {
-    "type": "object",
-    "properties": {slot: _RECOMMENDATION_SCHEMA for slot in RECOMMENDATION_SLOTS},
-    "required": list(RECOMMENDATION_SLOTS),
-    "examples": [
-        {
-            "first": {
-                "kind": RecommendationKind.POSITIVE.value,
-                "title": "Tu ahorro va por buen camino",
-                "body": "Ahorraste el 18% de tus ingresos. Si lo sostenés, llegás a tu meta a tiempo.",
-                "action": RecommendationAction.GOALS.value,
-            },
-            "second": {
-                "kind": RecommendationKind.WARNING.value,
-                "title": "Entretenimiento por encima del tope",
-                "body": "Este mes gastaste un 25% más de lo que te propusiste en entretenimiento.",
-                "action": RecommendationAction.BUDGETS.value,
-            },
-            "third": {
-                "kind": RecommendationKind.TIP.value,
-                "title": "Revisá tus gastos de transporte",
-                "body": "Transporte creció tres meses seguidos. Mirá en qué se te va y agrupá viajes.",
-                "action": RecommendationAction.TRANSACTIONS.value,
-            },
-        }
-    ],
-}
-
-_LANGUAGES = {
-    Language.ES: "castellano rioplatense, tuteando con voseo (vos tenés, revisá)",
-    Language.EN: "English",
-    Language.PT: "portugues do Brasil",
-}
+RESPONSE_SCHEMA = response_schema(
+    {
+        "first": {
+            "kind": RecommendationKind.POSITIVE.value,
+            "title": "Tu ahorro va por buen camino",
+            "body": "Ahorraste el 18% de tus ingresos. Si lo sostenés, llegás a tu meta a tiempo.",
+            "action": RecommendationAction.GOALS.value,
+        },
+        "second": {
+            "kind": RecommendationKind.WARNING.value,
+            "title": "Entretenimiento por encima del tope",
+            "body": "Este mes gastaste un 25% más de lo que te propusiste en entretenimiento.",
+            "action": RecommendationAction.BUDGETS.value,
+        },
+        "third": {
+            "kind": RecommendationKind.TIP.value,
+            "title": "Revisá tus gastos de transporte",
+            "body": "Transporte creció tres meses seguidos. Mirá en qué se te va y agrupá viajes.",
+            "action": RecommendationAction.TRANSACTIONS.value,
+        },
+    }
+)
 
 _INSTRUCTIONS = """\
 Sos el asistente de finanzas personales de FinGrow, una plataforma que las empresas les dan a \
@@ -131,10 +97,10 @@ def build_system_prompt(request: RecommendationsRequest) -> str:
     return _INSTRUCTIONS.format(
         currency=request.currency.value,
         count=RECOMMENDATION_COUNT,
-        categories=", ".join(f"{category.value}: {name}" for category, name in _CATEGORY_NAMES.items()),
+        categories=category_list(),
         title_length=MAX_TITLE_LENGTH,
         body_length=MAX_BODY_LENGTH,
-        language=_LANGUAGES[request.language],
+        language=LANGUAGES[request.language],
     )
 
 
