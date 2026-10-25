@@ -17,12 +17,13 @@ from app.schemas.financial_insights import (
     MAX_TITLE_LENGTH,
     RECOMMENDATION_COUNT,
     Recommendation,
+    RecommendationAction,
 )
 
 logger = logging.getLogger(__name__)
 
 
-def parse_recommendations(raw: str) -> list[Recommendation]:
+def parse_recommendations(raw: str, *, action: RecommendationAction | None = None) -> list[Recommendation]:
     try:
         payload = json.loads(raw)
     except json.JSONDecodeError as exc:
@@ -37,7 +38,7 @@ def parse_recommendations(raw: str) -> list[Recommendation]:
 
     recommendations = [
         recommendation
-        for recommendation in (_recommendation(entry) for entry in entries)
+        for recommendation in (_recommendation(entry, action) for entry in entries)
         if recommendation is not None
     ][:RECOMMENDATION_COUNT]
 
@@ -77,7 +78,7 @@ def _decode(value: str) -> Any:
         return None
 
 
-def _recommendation(entry: Any) -> Recommendation | None:
+def _recommendation(entry: Any, action: RecommendationAction | None) -> Recommendation | None:
     if isinstance(entry, str):
         entry = _decode(entry)
 
@@ -92,7 +93,7 @@ def _recommendation(entry: Any) -> Recommendation | None:
             kind=entry.get("kind"),
             title=title.strip()[:MAX_TITLE_LENGTH] if isinstance(title, str) else "",
             body=body.strip()[:MAX_BODY_LENGTH] if isinstance(body, str) else "",
-            action=entry.get("action"),
+            action=action if action is not None else entry.get("action"),
         )
     except ValidationError:
         logger.warning("Se descarto una recomendacion incompleta del modelo")
