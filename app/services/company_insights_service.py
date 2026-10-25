@@ -26,12 +26,7 @@ class CompanyInsightsService:
             response_schema=RESPONSE_SCHEMA,
         )
 
-        # El schema solo admite 'none', pero el modelo no siempre lo respeta: una recomendacion para
-        # la empresa nunca lleva a una pantalla del empleado.
-        recommendations = [
-            recommendation.model_copy(update={"action": RecommendationAction.NONE})
-            for recommendation in parse_recommendations(raw)
-        ]
+        recommendations = parse_recommendations(raw, action=RecommendationAction.NONE)
 
         return RecommendationsResponse(
             recommendations=recommendations,

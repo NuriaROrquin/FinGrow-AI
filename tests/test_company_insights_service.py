@@ -84,6 +84,20 @@ async def test_una_recomendacion_con_pantalla_del_empleado_queda_sin_pantalla() 
     ]
 
 
+async def test_las_recomendaciones_sin_action_se_conservan_sin_pantalla() -> None:
+    entries = [_entry("warning"), _entry(), _entry("positive")]
+    for entry in entries:
+        del entry["action"]
+    llm = _FakeLlmClient(json.dumps(dict(zip(("first", "second", "third"), entries, strict=True))))
+
+    response = await CompanyInsightsService(llm=llm).recommend(_request())
+
+    assert len(response.recommendations) == 3
+    assert {recommendation.action for recommendation in response.recommendations} == {
+        RecommendationAction.NONE
+    }
+
+
 async def test_descarta_las_recomendaciones_invalidas() -> None:
     llm = _FakeLlmClient(json.dumps({"recommendations": [_entry(kind="otro"), _entry()]}))
 
