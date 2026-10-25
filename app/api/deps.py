@@ -21,6 +21,7 @@ from app.infrastructure.ocr.client import ReceiptReader
 from app.infrastructure.transcription.client import Transcriber
 from app.services.budget_insights_service import BudgetInsightsService
 from app.services.categorization_service import CategorizationService
+from app.services.company_insights_service import CompanyInsightsService
 from app.services.email_parsing_service import EmailParsingService
 from app.services.financial_insights_service import FinancialInsightsService
 from app.services.message_parsing_service import MessageParsingService
@@ -105,3 +106,10 @@ def get_budget_insights_service(llm: LlmClientDep) -> BudgetInsightsService:
 
 
 BudgetInsightsServiceDep = Annotated[BudgetInsightsService, Depends(get_budget_insights_service)]
+
+
+def get_company_insights_service(llm: LlmClientDep) -> CompanyInsightsService:
+    return CompanyInsightsService(llm=llm)
+
+
+CompanyInsightsServiceDep = Annotated[CompanyInsightsService, Depends(get_company_insights_service)]
