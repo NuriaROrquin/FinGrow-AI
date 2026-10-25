@@ -93,7 +93,9 @@ async def test_las_recomendaciones_sin_action_se_conservan_sin_pantalla() -> Non
     response = await CompanyInsightsService(llm=llm).recommend(_request())
 
     assert len(response.recommendations) == 3
-    assert {recommendation.action for recommendation in response.recommendations} == {RecommendationAction.NONE}
+    assert {recommendation.action for recommendation in response.recommendations} == {
+        RecommendationAction.NONE
+    }
 
 
 async def test_descarta_las_recomendaciones_invalidas() -> None:
