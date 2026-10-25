@@ -1,6 +1,7 @@
 """Tests de AnthropicLlmClient con el SDK mockeado -- nunca pegan a la red real."""
 
 import json
+import logging
 from unittest.mock import AsyncMock
 
 import anthropic
@@ -25,9 +26,16 @@ class _FakeToolUseBlock:
         self.input = input_
 
 
+class _FakeUsage:
+    def __init__(self, input_tokens: int, output_tokens: int) -> None:
+        self.input_tokens = input_tokens
+        self.output_tokens = output_tokens
+
+
 class _FakeMessage:
-    def __init__(self, content: list) -> None:
+    def __init__(self, content: list, usage: _FakeUsage | None = None) -> None:
         self.content = content
+        self.usage = usage or _FakeUsage(10, 5)
 
 
 def _make_client() -> AnthropicLlmClient:
@@ -47,6 +55,23 @@ async def test_complete_devuelve_el_texto_de_la_respuesta() -> None:
     result = await client.complete("prompt")
 
     assert result == "hola"
+
+
+async def test_complete_loguea_modelo_duracion_y_tokens(caplog: pytest.LogCaptureFixture) -> None:
+    client = _make_client()
+    client._client.messages.create = AsyncMock(
+        return_value=_FakeMessage([_FakeTextBlock("hola")], usage=_FakeUsage(1200, 340))
+    )
+
+    with caplog.at_level(logging.INFO, logger="app.infrastructure.llm.client"):
+        await client.complete("prompt")
+
+    record = next(r for r in caplog.records if r.name == "app.infrastructure.llm.client")
+    assert record.model == "claude-sonnet-5"
+    assert record.input_tokens == 1200
+    assert record.output_tokens == 340
+    assert record.duration_ms >= 0
+    assert "prompt" not in record.getMessage()
 
 
 async def test_complete_con_response_schema_devuelve_el_json_del_tool_use() -> None:

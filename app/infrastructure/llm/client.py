@@ -11,6 +11,7 @@ los metodos con la firma correcta, sin heredar de nada.
 
 import json
 import logging
+import time
 from typing import Any, Protocol
 
 import anthropic
@@ -132,6 +133,7 @@ class AnthropicLlmClient:
             ]
             create_kwargs["tool_choice"] = {"type": "tool", "name": tool_name}
 
+        started = time.perf_counter()
         try:
             message = await self._client.messages.create(**create_kwargs)
         except (anthropic.APITimeoutError, anthropic.APIConnectionError) as exc:
@@ -147,6 +149,21 @@ class AnthropicLlmClient:
             if exc.status_code >= 500:
                 raise ModelUnavailableError("El proveedor de IA respondio con un error interno.") from exc
             raise
+
+        duration_ms = round((time.perf_counter() - started) * 1000)
+        logger.info(
+            "Respuesta de %s en %d ms: %d tokens de entrada y %d de salida",
+            self.model,
+            duration_ms,
+            message.usage.input_tokens,
+            message.usage.output_tokens,
+            extra={
+                "model": self.model,
+                "duration_ms": duration_ms,
+                "input_tokens": message.usage.input_tokens,
+                "output_tokens": message.usage.output_tokens,
+            },
+        )
 
         if response_schema is not None:
             tool_use = next((block for block in message.content if block.type == "tool_use"), None)
