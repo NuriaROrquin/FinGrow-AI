@@ -22,6 +22,9 @@ from app.schemas.financial_insights import (
 
 logger = logging.getLogger(__name__)
 
+_CODED_FIELDS = ("kind", "action")
+_MAX_LOGGED_VALUE_LENGTH = 40
+
 
 def parse_recommendations(raw: str, *, action: RecommendationAction | None = None) -> list[Recommendation]:
     try:
@@ -95,6 +98,21 @@ def _recommendation(entry: Any, action: RecommendationAction | None) -> Recommen
             body=body.strip()[:MAX_BODY_LENGTH] if isinstance(body, str) else "",
             action=action if action is not None else entry.get("action"),
         )
-    except ValidationError:
-        logger.warning("Se descarto una recomendacion incompleta del modelo")
+    except ValidationError as exc:
+        logger.warning("Se descarto una recomendacion incompleta del modelo: %s", _invalid_fields(exc, entry))
         return None
+
+
+def _invalid_fields(exc: ValidationError, entry: dict[str, Any]) -> str:
+    fields = dict.fromkeys(str(error["loc"][0]) for error in exc.errors())
+    return ", ".join(_describe_field(field, entry) for field in fields)
+
+
+def _describe_field(field: str, entry: dict[str, Any]) -> str:
+    if field not in entry:
+        return f"{field} ausente"
+
+    if field in _CODED_FIELDS:
+        return f"{field}={repr(entry[field])[:_MAX_LOGGED_VALUE_LENGTH]}"
+
+    return f"{field} vacio"
