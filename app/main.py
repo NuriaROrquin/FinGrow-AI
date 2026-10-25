@@ -31,13 +31,14 @@ async def lifespan(app: FastAPI):
     segundos; hacerlo por request mata la API.
     """
     settings = get_settings()
-    configure_logging(settings.log_level)
+    logger_provider = configure_logging(settings)
 
     app.state.llm_client = build_llm_client(settings)
     app.state.transcriber = build_transcriber(settings)
     app.state.receipt_reader = build_receipt_reader(settings)
     yield
-    # Aca iria el cierre ordenado de conexiones, si las hubiera.
+    if logger_provider is not None:
+        logger_provider.shutdown()
 
 
 def create_app() -> FastAPI:
