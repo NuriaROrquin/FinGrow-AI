@@ -196,7 +196,8 @@ Cada evento lleva `service.name = fingrow-ai` y `deployment.environment` (`ENVIR
 mismo dataset que FinGrow-BE, que manda con `service.name = fingrow-api`, y el mismo token de
 ingesta sirve para los dos. `AXIOM_DOMAIN` es `api.axiom.co` por defecto; un dataset creado en un
 edge va con el dominio de ese edge (`us-east-1.aws.edge.axiom.co`, `eu-central-1.aws.edge.axiom.co`).
-Los logs del propio envio (`opentelemetry`, `urllib3`, `requests`) quedan solo en la consola.
+A Axiom va solo lo de nivel `INFO` para arriba, aunque `LOG_LEVEL` sea `DEBUG`. Los logs del propio
+envio (`opentelemetry`, `urllib3`, `requests`) quedan solo en la consola.
 
 ## Ciclos de vida
 
