@@ -1,3 +1,4 @@
+import logging
 from unittest.mock import AsyncMock
 
 import httpx2
@@ -45,6 +46,24 @@ async def test_devuelve_el_texto_transcrito() -> None:
     )
 
     assert await _transcribe(transcriber) == "gaste 2500 en el super"
+
+
+async def test_loguea_modelo_duracion_y_tamano_del_audio_sin_el_texto(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    transcriber = _make_transcriber()
+    transcriber._client.audio.transcriptions.create = AsyncMock(
+        return_value=_FakeTranscription("gaste 2500 en el super")
+    )
+
+    with caplog.at_level(logging.INFO, logger="app.infrastructure.transcription.client"):
+        await _transcribe(transcriber)
+
+    record = next(r for r in caplog.records if r.name == "app.infrastructure.transcription.client")
+    assert record.model == "gpt-4o-mini-transcribe"
+    assert record.audio_bytes == len(b"audio")
+    assert record.duration_ms >= 0
+    assert "2500" not in record.getMessage()
 
 
 async def test_manda_el_audio_con_extension_idioma_modelo_y_prompt() -> None:

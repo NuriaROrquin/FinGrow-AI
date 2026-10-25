@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Any, Protocol
@@ -103,6 +104,7 @@ class TextractReceiptReader:
         self.model = TEXTRACT_MODEL
 
     async def read(self, document: bytes) -> ReceiptReading:
+        started = time.perf_counter()
         try:
             response = await asyncio.to_thread(self._client.analyze_expense, Document={"Bytes": document})
         except ClientError as exc:
@@ -110,6 +112,14 @@ class TextractReceiptReader:
         except BotoCoreError as exc:
             raise ModelUnavailableError("El proveedor de OCR no respondio a tiempo.") from exc
 
+        duration_ms = round((time.perf_counter() - started) * 1000)
+        logger.info(
+            "Comprobante de %d bytes leido con %s en %d ms",
+            len(document),
+            self.model,
+            duration_ms,
+            extra={"model": self.model, "duration_ms": duration_ms, "document_bytes": len(document)},
+        )
         return parse_analyze_expense(response)
 
     @staticmethod

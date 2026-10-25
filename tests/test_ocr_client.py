@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -108,6 +109,19 @@ async def test_manda_el_documento_en_bytes_a_analyze_expense() -> None:
     analyze.assert_called_once_with(Document={"Bytes": b"documento"})
     assert reading.total == OcrField("$ 8.900,00", 0.96)
     assert reader.model == TEXTRACT_MODEL
+
+
+async def test_loguea_modelo_duracion_y_tamano_del_comprobante(caplog: pytest.LogCaptureFixture) -> None:
+    reader = _reader()
+    reader._client.analyze_expense = MagicMock(return_value=_response())
+
+    with caplog.at_level(logging.INFO, logger="app.infrastructure.ocr.client"):
+        await reader.read(b"documento")
+
+    record = next(r for r in caplog.records if r.name == "app.infrastructure.ocr.client")
+    assert record.model == TEXTRACT_MODEL
+    assert record.document_bytes == len(b"documento")
+    assert record.duration_ms >= 0
 
 
 @pytest.mark.parametrize(

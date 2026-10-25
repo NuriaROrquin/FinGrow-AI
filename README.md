@@ -199,6 +199,12 @@ edge va con el dominio de ese edge (`us-east-1.aws.edge.axiom.co`, `eu-central-1
 A Axiom va solo lo de nivel `INFO` para arriba, aunque `LOG_LEVEL` sea `DEBUG`. Los logs del propio
 envio (`opentelemetry`, `urllib3`, `requests`) quedan solo en la consola.
 
+Cada llamada a un proveedor deja una linea `INFO` con el modelo y cuanto tardo, y en el LLM los
+tokens de entrada y de salida. Ademas viajan como atributos (`model`, `duration_ms`,
+`input_tokens`, `output_tokens`, `audio_bytes`, `document_bytes`), asi que en Axiom se filtran y
+se grafican como `attributes.duration_ms`. Nunca llevan el texto del mensaje, el audio ni el
+comprobante.
+
 ## Ciclos de vida
 
 - Una funcion resuelta con `Depends()` se ejecuta **una vez por request**.
