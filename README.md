@@ -78,6 +78,7 @@ pueda integrar en paralelo.
 | `POST /api/v1/email-parsing/bills` | Decide si un mail es una factura o un consumo y extrae empresa, total, moneda, vencimiento y categoria (HU-06, sync de Gmail) |
 | `POST /api/v1/financial-insights/recommendations` | Genera tres recomendaciones accionables sobre el resumen financiero de un empleado en una moneda (HU-44) |
 | `POST /api/v1/budget-insights/recommendations` | Genera tres recomendaciones sobre cómo le fue a un empleado con sus presupuestos mensuales en una moneda (HU-25) |
+| `POST /api/v1/company-insights/recommendations` | Genera tres recomendaciones para una empresa a partir de las preocupaciones financieras agregadas de su plantilla (HU-61 y HU-64) |
 
 `message-parsing` devuelve un `status`: `parsed` (trae `transaction`), `missing_amount`,
 `not_a_transaction` o `multiple_transactions`. Los tres ultimos no traen movimiento: el backend
@@ -122,6 +123,22 @@ modelo solo usa para avisar si va camino a pasarse. Tampoco recibe movimientos s
 del empleado. Responde con la misma forma que `financial-insights`: el schema de la respuesta, los
 nombres de las categorias y la lectura tolerante de lo que devuelve el modelo son compartidos
 (`app/infrastructure/prompts/recommendations.py` y `app/services/recommendation_parsing.py`).
+
+`company-insights` (HU-61 y HU-64) recibe solo indicadores agregados de una empresa para un mes:
+cuantos empleados se midieron (`measured_employees`), el puntaje promedio de salud financiera y la
+participacion (los dos pueden venir en `null`) y las preocupaciones que detecto el backend
+(`concerns`), cada una con afectados, evaluados y porcentaje. Las preocupaciones son una lista
+cerrada que es contrato con FinGrow-BE (`FinancialConcern`: `low_savings`, `thin_cushion`,
+`budget_overruns`, `missed_goal_contributions`): cuales hay y cuanto pesa cada una lo decide el
+backend con reglas, el modelo solo recomienda. Nunca recibe ids, nombres, departamentos ni datos
+de un empleado; un campo que el schema no declara se descarta antes de armar el prompt.
+
+- Responde con la misma forma que `financial-insights`, pero `action` siempre es `none`: son
+  acciones que la empresa hace fuera de FinGrow (talleres, charlas, comunicacion interna). El
+  schema solo admite `none` y el servicio lo fuerza aunque el modelo devuelva otra.
+- `title` y `body` vienen en el idioma de la empresa.
+- El prompt le prohibe hablar de una persona en particular, sugerir identificar a los afectados y
+  recomendar productos financieros, prestamos o adelantos de sueldo.
 
 `transcription` no usa Claude: la API de Anthropic no acepta audio. Usa OpenAI
 (`gpt-4o-mini-transcribe`) con `TRANSCRIPTION_PROVIDER=openai` y `TRANSCRIPTION_API_KEY`; con
