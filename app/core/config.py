@@ -55,6 +55,10 @@ class Settings(BaseSettings):
     ocr_timeout_seconds: int = Field(default=30, ge=1, le=300)
     ocr_max_document_bytes: int = Field(default=5 * 1024 * 1024, ge=1, le=5 * 1024 * 1024)
 
+    axiom_token: str = ""
+    axiom_dataset: str = ""
+    axiom_domain: str = "api.axiom.co"
+
     @model_validator(mode="after")
     def _transcription_key_required(self) -> "Settings":
         if self.transcription_provider == "openai" and not self.transcription_api_key:
@@ -74,9 +78,29 @@ class Settings(BaseSettings):
 
         return self
 
+    @model_validator(mode="after")
+    def _axiom_settings_complete(self) -> "Settings":
+        if self.axiom_token and not self.axiom_dataset:
+            raise ValueError("Para mandar los logs a Axiom falta AXIOM_DATASET.")
+
+        if self.axiom_dataset and not self.axiom_token:
+            raise ValueError("Para mandar los logs a Axiom falta AXIOM_TOKEN.")
+
+        return self
+
     @property
     def auth_enabled(self) -> bool:
         return bool(self.api_key)
+
+    @property
+    def axiom_enabled(self) -> bool:
+        return bool(self.axiom_token)
+
+    @property
+    def axiom_logs_endpoint(self) -> str:
+        domain = self.axiom_domain.strip().rstrip("/") or "api.axiom.co"
+        base_url = domain if "://" in domain else f"https://{domain}"
+        return f"{base_url}/v1/logs"
 
 
 @lru_cache

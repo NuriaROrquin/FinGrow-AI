@@ -184,6 +184,21 @@ supermercado, para integrar sin gastar.
 - Costo de referencia: USD 0,01 por pagina; las cuentas nuevas de AWS tienen 100 paginas por mes
   gratis durante tres meses.
 
+## Logs
+
+Los logs salen siempre por consola. Con `AXIOM_TOKEN` y `AXIOM_DATASET` se mandan ademas a
+[Axiom](https://axiom.co) por OpenTelemetry (OTLP/HTTP a `https://<AXIOM_DOMAIN>/v1/logs`), en
+lotes y en segundo plano: si Axiom no responde, los requests no esperan ni fallan. Van los del
+servicio y los de uvicorn (arranque, errores y una linea por request). Con una sola de las dos
+variables el servicio no arranca; sin ninguna, todo funciona como antes.
+
+Cada evento lleva `service.name = fingrow-ai` y `deployment.environment` (`ENVIRONMENT`). Va al
+mismo dataset que FinGrow-BE, que manda con `service.name = fingrow-api`, y el mismo token de
+ingesta sirve para los dos. `AXIOM_DOMAIN` es `api.axiom.co` por defecto; un dataset creado en un
+edge va con el dominio de ese edge (`us-east-1.aws.edge.axiom.co`, `eu-central-1.aws.edge.axiom.co`).
+A Axiom va solo lo de nivel `INFO` para arriba, aunque `LOG_LEVEL` sea `DEBUG`. Los logs del propio
+envio (`opentelemetry`, `urllib3`, `requests`) quedan solo en la consola.
+
 ## Ciclos de vida
 
 - Una funcion resuelta con `Depends()` se ejecuta **una vez por request**.
