@@ -12,6 +12,8 @@ def _settings_de_test(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OCR_PROVIDER", "stub")
     monkeypatch.setenv("OCR_AWS_ACCESS_KEY_ID", "")
     monkeypatch.setenv("OCR_AWS_SECRET_ACCESS_KEY", "")
+    monkeypatch.setenv("AXIOM_TOKEN", "")
+    monkeypatch.setenv("AXIOM_DATASET", "")
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
