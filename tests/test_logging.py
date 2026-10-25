@@ -55,7 +55,7 @@ def _restore_logging() -> Iterator[None]:
         logging.getLogger(name).setLevel(level)
 
 
-def test_logs_reach_the_otlp_logs_endpoint_with_the_token_and_the_dataset(collector: FakeOtlpCollector):
+def test_los_logs_llegan_al_endpoint_otlp_con_el_token_y_el_dataset(collector: FakeOtlpCollector):
     settings = Settings(
         axiom_token="xaat-test-token",
         axiom_dataset="fingrow-test",
@@ -67,6 +67,9 @@ def test_logs_reach_the_otlp_logs_endpoint_with_the_token_and_the_dataset(collec
     logging.getLogger("app.infrastructure.llm.client").debug("Prompt armado para el modelo")
     logging.getLogger("app.services.categorization_service").info("Categoria propuesta: alimentos")
     logging.getLogger("uvicorn.access").info("POST /api/v1/categorization 200")
+    logging.getLogger("app.infrastructure.llm.client").info(
+        "Respuesta del modelo", extra={"duration_ms": 1234}
+    )
     logging.getLogger("urllib3.connectionpool").warning("Conexion reintentada con Axiom")
     logger_provider.shutdown()
 
@@ -80,11 +83,12 @@ def test_logs_reach_the_otlp_logs_endpoint_with_the_token_and_the_dataset(collec
     assert b"development" in body
     assert b"Categoria propuesta: alimentos" in body
     assert b"POST /api/v1/categorization 200" in body
+    assert b"duration_ms" in body
     assert b"Conexion reintentada con Axiom" not in body
     assert b"Prompt armado para el modelo" not in body
 
 
-def test_without_axiom_only_the_console_handler_is_configured():
+def test_sin_axiom_solo_queda_la_consola():
     logger_provider = configure_logging(Settings())
 
     assert logger_provider is None
@@ -92,7 +96,7 @@ def test_without_axiom_only_the_console_handler_is_configured():
     assert not any(isinstance(h, LoggingHandler) for h in logging.getLogger("uvicorn").handlers)
 
 
-def test_configuring_twice_does_not_duplicate_the_axiom_handler(collector: FakeOtlpCollector):
+def test_configurar_dos_veces_no_duplica_el_handler_de_axiom(collector: FakeOtlpCollector):
     settings = Settings(
         axiom_token="xaat-test-token", axiom_dataset="fingrow-test", axiom_domain=collector.base_url
     )
@@ -108,9 +112,7 @@ def test_configuring_twice_does_not_duplicate_the_axiom_handler(collector: FakeO
     ("token", "dataset", "missing"),
     [("xaat-test-token", "", "AXIOM_DATASET"), ("", "fingrow-test", "AXIOM_TOKEN")],
 )
-def test_half_configured_axiom_stops_the_startup_naming_what_is_missing(
-    token: str, dataset: str, missing: str
-):
+def test_axiom_a_medio_configurar_no_arranca_y_dice_que_falta(token: str, dataset: str, missing: str):
     with pytest.raises(ValidationError, match=missing):
         Settings(axiom_token=token, axiom_dataset=dataset)
 
@@ -124,5 +126,5 @@ def test_half_configured_axiom_stops_the_startup_naming_what_is_missing(
         ("http://127.0.0.1:4318", "http://127.0.0.1:4318/v1/logs"),
     ],
 )
-def test_the_logs_endpoint_is_built_from_the_domain(domain: str, endpoint: str):
+def test_el_endpoint_de_logs_se_arma_con_el_dominio(domain: str, endpoint: str):
     assert Settings(axiom_domain=domain).axiom_logs_endpoint == endpoint
