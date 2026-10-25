@@ -40,7 +40,7 @@ def configure_logging(settings: Settings) -> LoggerProvider | None:
         return None
 
     logger_provider = _build_axiom_logger_provider(settings)
-    axiom_handler = LoggingHandler(logger_provider=logger_provider)
+    axiom_handler = LoggingHandler(level=logging.INFO, logger_provider=logger_provider)
     axiom_handler.addFilter(_is_not_from_the_exporter)
 
     root.addHandler(axiom_handler)

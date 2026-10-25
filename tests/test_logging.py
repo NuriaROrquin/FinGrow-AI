@@ -60,9 +60,11 @@ def test_logs_reach_the_otlp_logs_endpoint_with_the_token_and_the_dataset(collec
         axiom_token="xaat-test-token",
         axiom_dataset="fingrow-test",
         axiom_domain=collector.base_url,
+        log_level="DEBUG",
     )
 
     logger_provider = configure_logging(settings)
+    logging.getLogger("app.infrastructure.llm.client").debug("Prompt armado para el modelo")
     logging.getLogger("app.services.categorization_service").info("Categoria propuesta: alimentos")
     logging.getLogger("uvicorn.access").info("POST /api/v1/categorization 200")
     logging.getLogger("urllib3.connectionpool").warning("Conexion reintentada con Axiom")
@@ -79,6 +81,7 @@ def test_logs_reach_the_otlp_logs_endpoint_with_the_token_and_the_dataset(collec
     assert b"Categoria propuesta: alimentos" in body
     assert b"POST /api/v1/categorization 200" in body
     assert b"Conexion reintentada con Axiom" not in body
+    assert b"Prompt armado para el modelo" not in body
 
 
 def test_without_axiom_only_the_console_handler_is_configured():
