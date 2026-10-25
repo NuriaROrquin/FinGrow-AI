@@ -1,4 +1,5 @@
 import logging
+import time
 from typing import Protocol
 
 import openai
@@ -34,6 +35,7 @@ class OpenAiTranscriber:
         self.model = model
 
     async def transcribe(self, audio: bytes, *, audio_format: AudioFormat, language: str) -> str:
+        started = time.perf_counter()
         try:
             transcription = await self._client.audio.transcriptions.create(
                 model=self.model,
@@ -60,6 +62,15 @@ class OpenAiTranscriber:
                 ) from exc
             raise
 
+        duration_ms = round((time.perf_counter() - started) * 1000)
+        logger.info(
+            "Audio %s de %d bytes transcripto con %s en %d ms",
+            audio_format,
+            len(audio),
+            self.model,
+            duration_ms,
+            extra={"model": self.model, "duration_ms": duration_ms, "audio_bytes": len(audio)},
+        )
         return transcription.text
 
 
